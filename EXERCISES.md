@@ -1,0 +1,195 @@
+# Exercises — make the learning stick
+
+Reading code teaches you less than *predicting* what it will do and then checking.
+This file turns each section of the [README](README.md) into a few quick
+active-recall prompts: a thing to predict, a thing to change, and a question to
+answer from memory.
+
+How to use it: work the section first, then come back. **Commit to an answer
+before you run or reveal** — the prediction is where the learning happens, even
+(especially) when you're wrong. Answers are hidden behind ▸ toggles.
+
+> The chunking exercises are **(offline)** — no API call, no cost. The rest make
+> small, cheap calls.
+
+---
+
+## Section 2 — Embeddings (recap)
+
+**Recall.** Two sentences share no words. Can they still score a high cosine
+similarity? Why does that matter for retrieval?
+
+<details><summary>▸ Answer</summary>
+
+Yes — embeddings capture *meaning*, not spelling, so "get my notes out" lands near
+"export to Markdown." That's the whole basis of retrieval: you can find the right
+passage even when the user's words don't appear in it.
+</details>
+
+---
+
+## Section 3 — Chunking **(offline)**
+
+**Predict, then run.** In `examples/02_chunking.py`, you chunk the same document
+at size 40 and size 300. Which produces more chunks? Which produces more *focused*
+ones?
+
+<details><summary>▸ Answer</summary>
+
+Size 40 produces many more, smaller, tightly-focused chunks; size 300 produces a
+few broad ones. More focused isn't automatically better — a too-small chunk may
+not contain enough to answer on its own. That tension is the whole reason chunk
+size is a tunable knob.
+</details>
+
+**Do (offline).** Set `overlap` equal to `chunk_size` in a call to `chunk_text`.
+What happens, and why does the code forbid it?
+
+<details><summary>▸ Answer</summary>
+
+It raises `ValueError`. With overlap == size the window would never advance
+(step = size − overlap = 0), so it'd loop forever. Overlap must be *smaller* than
+the chunk so the window slides forward while still sharing a boundary.
+</details>
+
+---
+
+## Section 4 — The vector store
+
+**Recall.** `VectorStore.search` is described as "brute force." What does it
+actually do for each query, and why is that fine here but not at a billion
+vectors?
+
+<details><summary>▸ Answer</summary>
+
+It computes cosine similarity against *every* stored vector, then sorts — O(n) per
+query. For hundreds or thousands of chunks that's instant. At millions/billions
+you switch to an approximate-nearest-neighbour index (FAISS, hnswlib) or a vector
+database; same idea, cleverer data structure.
+</details>
+
+---
+
+## Section 5 — The RAG pipeline
+
+**Predict, then run.** Ask `examples/04_rag_pipeline.py` something the corpus
+does NOT cover (e.g. `"Who founded the company?"`). What should a well-grounded
+system do?
+
+<details><summary>▸ Answer</summary>
+
+It should say it doesn't know, rather than invent an answer. That's the job of the
+grounding instruction (`GROUNDED_SYSTEM`): answer only from the provided context.
+Hallucinating a confident wrong answer is the failure RAG is meant to prevent.
+</details>
+
+**Do.** Open `rag/pipeline.py` and read `build_prompt`. Why are the retrieved
+chunks *numbered* `[1] [2] ...`?
+
+<details><summary>▸ Answer</summary>
+
+So the model can cite them — "[2]" in the answer maps back to a real source the
+reader can check. Numbering the context is what makes citations possible.
+</details>
+
+---
+
+## Section 6 — Chunk size & retrieval quality
+
+**Do.** In `examples/05_chunk_size.py`, the same query is run against small and
+large chunks. Pick a query where you'd expect them to differ a lot, change it, and
+see. When might *large* chunks retrieve worse?
+
+<details><summary>▸ Answer</summary>
+
+When a large chunk bundles several topics, an off-topic sentence can pull it up
+(or push the right chunk down) in the ranking, and you spend context-window space
+on irrelevant text. Small chunks are more precise but can fragment an answer. The
+only way to know for your data is to measure (Section 9).
+</details>
+
+---
+
+## Section 7 — Hybrid retrieval
+
+**Predict, then run.** `examples/06_hybrid_retrieval.py` asks "what does error
+NN-413 mean?" Which scorer — vector or keyword — do you expect to nail it, and
+why?
+
+<details><summary>▸ Answer</summary>
+
+Keyword. An exact code like "NN-413" carries little semantic meaning for the
+embedding model, but a keyword match finds it instantly. The paraphrase query
+("get my notes out") is the reverse — vectors win. Hybrid combines both, which is
+why production retrieval is usually hybrid.
+</details>
+
+---
+
+## Section 8 — Reranking
+
+**Recall.** Reranking re-scores only the top ~8 chunks, not the whole corpus. Why
+is it affordable to use a slower, smarter method at that stage?
+
+<details><summary>▸ Answer</summary>
+
+Because you've already narrowed millions/thousands down to a handful with cheap
+vector search. A method too slow to run over everything is fine over 8 candidates.
+That's the point of a two-stage retrieve-then-rerank pipeline.
+</details>
+
+---
+
+## Section 9 — Evaluation
+
+**Recall.** What's the difference between "hit rate @ k" and "MRR," and why track
+both?
+
+<details><summary>▸ Answer</summary>
+
+Hit rate @ k asks *did the right chunk appear in the top k at all?* MRR asks *how
+high?* (1/rank of the first correct hit). Two systems can have the same hit rate
+but different MRR — the one that ranks the right chunk #1 instead of #4 gives the
+model better context. Retrieval can also succeed while the *answer* is still
+wrong, which is why the example measures answer correctness too.
+</details>
+
+**Do.** Change `K` in `examples/08_evaluation.py` from 4 to 1, then to 8. What
+happens to the hit rate, and what's the catch with just cranking k up?
+
+<details><summary>▸ Answer</summary>
+
+Hit rate usually rises with k (more chances to include the right chunk). But every
+extra chunk costs context-window space and tokens, dilutes the prompt with
+less-relevant text, and can *lower* answer quality. Bigger k is not free — it's a
+tradeoff you measure, not maximize.
+</details>
+
+---
+
+## Capstone — `ask_docs.py`
+
+**Do.** Run `python hands_on/ask_docs.py` once, then again. The second run is much
+faster — why? Then add a fact to a file in `corpus/`, run with `--rebuild`, and
+ask about your new fact.
+
+<details><summary>▸ Answer</summary>
+
+The first run embeds the corpus and caches the index to `.rag_index.json`; later
+runs load it instead of re-embedding (embedding is the slow, paid step). Editing
+the corpus means the cache is stale — `--rebuild` re-embeds. The cache also auto-
+rebuilds if you change provider or chunk settings, since vectors aren't comparable
+across embedding models.
+</details>
+
+**Stretch.** Ask a question, then run again with `--show-context` and read the
+chunks the answer was built from. Do the citations `[n]` in the answer actually
+match the right sources? This is how you audit a RAG system for trust.
+
+---
+
+### Where to take it next
+
+Invent your own. Pick a real folder of your own notes or docs, drop them in
+`corpus/`, `--rebuild`, and ask. The moment it answers something only *your*
+documents know — with a citation you can check — RAG has clicked.
