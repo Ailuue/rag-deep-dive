@@ -7,7 +7,7 @@ retrieval, hybrid search, reranking, grounding with citations, and evaluation �
 by building each one from scratch. No LangChain, no LlamaIndex, no vector
 database: just enough code to *see* how it works.
 
-This is the third of seven repos in a series. The sibling repos
+This is the fourth of eight repos in a series. The sibling repos
 ([openai-api-deep-dive](https://github.com/Ailuue/openai-api-deep-dive),
 [claude-api-deep-dive](https://github.com/Ailuue/claude-api-deep-dive)) teach the underlying API calls —
 embeddings and chat. This one assumes you can make those calls and asks the next
@@ -255,6 +255,36 @@ citation you can check — RAG has clicked.
 
 ---
 
+## RAG, fine-tuning, or something else?
+
+RAG is the right tool for a *specific* problem — the model lacks **knowledge** it
+needs *right now*. It's not the only tool, and reaching for it reflexively is a
+common mistake. The honest framing comes straight from this repo's one big idea:
+RAG changes *what's in the context window*; fine-tuning changes *how the model
+behaves by default*. Different problems.
+
+| What you actually need | Reach for | Why |
+|------------------------|-----------|-----|
+| Facts that change, are private, or must be **cited** | **RAG** | Retrieve the source at request time; update the corpus, not the model |
+| A consistent **format, tone, or narrow skill** done the same way every time | **Fine-tuning** | You're teaching *behavior*, not facts — that's what training adjusts |
+| The relevant material is small enough to just **include** | **Long context** | If it fits in the prompt, retrieval is machinery you don't need |
+| The model must **act** or fetch live data | **Tools / agents** | The gap is *capability*, not knowledge — see the [agents repo](https://github.com/Ailuue/agents-deep-dive) |
+| Lower **latency/cost** on a fixed, high-volume task | **Fine-tune a smaller model** | Distill known-good behavior into a cheaper model |
+
+They're complementary, not either/or: a common production shape is **fine-tune for
+format, RAG for facts** — train the model to always answer in your house style,
+and retrieve the facts it cites.
+
+Two rules of thumb. **Don't fine-tune first** — it's the slow, expensive,
+provider-specific option, and it can't add knowledge that changes. Exhaust
+prompting, better context, and RAG before you reach for it. And **don't decide by
+vibes** — the only way to know whether fine-tuning beat your RAG baseline (or made
+things worse) is to measure both on the same gold set. That's exactly what the
+[evals repo](https://github.com/Ailuue/evals-deep-dive) is for; the evaluation in
+Section 9 is the same method, pointed at a different decision.
+
+---
+
 ## Where to go next
 
 You've built a complete small RAG system. The road to production is mostly about
@@ -297,7 +327,7 @@ orthogonal to retrieval quality, and the same for any LLM app:
 These shortcuts are right for learning and wrong for production. All seven
 concerns — observability, cost, reliability, caching, guardrails, prompt
 versioning, and eval gates — are built from scratch and wired into one running
-app in **[Production](https://github.com/Ailuue/production-deep-dive)** (#7 in the
+app in **[Production](https://github.com/Ailuue/ai-in-production-deep-dive)** (#8 in the
 series). It runs **offline on a mock provider**, so you can see the whole ops
 machinery with no key and no cost.
 
@@ -351,7 +381,7 @@ at the top, and run it directly.
 
 ## The series
 
-This is one of seven standalone, hands-on deep dives into building with LLM APIs.
+This is one of eight standalone, hands-on deep dives into building with LLM APIs.
 Each one stands on its own — its own setup, examples, and capstone — and they all
 share the same house style: provider-agnostic, built from scratch (no
 frameworks), offline-first examples, and a real capstone. Do them in any order;
@@ -359,10 +389,11 @@ this sequence builds naturally:
 
 1. [OpenAI API](https://github.com/Ailuue/openai-api-deep-dive) — the API from zero
 2. [Claude API](https://github.com/Ailuue/claude-api-deep-dive) — the same ideas, the Anthropic way
-3. [RAG](https://github.com/Ailuue/rag-deep-dive) — answer questions over your own documents
-4. [Evals](https://github.com/Ailuue/evals-deep-dive) — measure whether a change actually helps
-5. [Agents](https://github.com/Ailuue/agents-deep-dive) — give a model tools and a loop so it can act
-6. [Prompt Injection & Guardrails](https://github.com/Ailuue/prompt-injection-deep-dive) — attack and defend all of the above
-7. [Production](https://github.com/Ailuue/production-deep-dive) — operate one app end to end: observability, cost, reliability, caching, guardrails, prompt versioning, eval gates
+3. [Prompt Engineering](https://github.com/Ailuue/prompt-engineering-deep-dive) — shape model behavior with better prompts (zero/few-shot, chain-of-thought, roles)
+4. [RAG](https://github.com/Ailuue/rag-deep-dive) — answer questions over your own documents
+5. [Evals](https://github.com/Ailuue/evals-deep-dive) — measure whether a change actually helps
+6. [Agents](https://github.com/Ailuue/agents-deep-dive) — give a model tools and a loop so it can act
+7. [Prompt Injection & Guardrails](https://github.com/Ailuue/prompt-injection-deep-dive) — attack and defend all of the above
+8. [Production](https://github.com/Ailuue/ai-in-production-deep-dive) — operate one app end to end: observability, cost, reliability, caching, guardrails, prompt versioning, eval gates
 
-**You are here: #3 — RAG.**
+**You are here: #4 — RAG.**
