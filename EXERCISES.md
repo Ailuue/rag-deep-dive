@@ -167,6 +167,53 @@ tradeoff you measure, not maximize.
 
 ---
 
+## Going further — more retrieval techniques
+
+**Recall (query transformation, `09`).** HyDE embeds a *hypothetical answer*
+instead of the question. Why does that help retrieval?
+
+<details><summary>▸ Answer</summary>
+
+A question and its answer often share few words, so the question's vector sits far
+from the passage that answers it. A drafted answer lives in "answer space" — much
+closer to the real passage — so embedding it pulls the right chunk up the ranking.
+Multi-query gets there differently: more phrasings = more chances to match.
+</details>
+
+**Predict (contextual retrieval, `10`).** The example embeds `context + chunk` but
+stores only `chunk`. Why embed one thing and show the model another?
+
+<details><summary>▸ Answer</summary>
+
+The prepended context exists only to make the **embedding** findable (it carries the
+"which document / what plan" words a bare chunk lacks). The model should still read
+the **clean** chunk, not the synthetic context — so you embed the augmented text but
+store and display the original.
+</details>
+
+**Recall (metadata & parent-doc, `11`).** Name one relevance reason and one security
+reason to filter retrieval by metadata. And what tension does small-to-big resolve?
+
+<details><summary>▸ Answer</summary>
+
+Relevance: only search the docs that could answer (e.g. billing). Security: never
+return a doc this user isn't allowed to see. Small-to-big resolves the chunk-size
+tension — **small** chunks match precisely, but you return the **parent** so the
+model reads complete context.
+</details>
+
+**Do (ingestion, `12`).** The first two parts run offline. Why does splitting on
+Markdown headings beat a blind word-window — and what becomes useful metadata?
+
+<details><summary>▸ Answer</summary>
+
+Heading-split sections are each about **one topic**, so a chunk doesn't straddle two
+ideas the way a fixed window can. The **heading** itself becomes metadata you can
+filter on and cite ("Billing > Refunds") — structure you'd otherwise throw away.
+</details>
+
+---
+
 ## Capstone — `ask_docs.py`
 
 **Do.** Run `python hands_on/ask_docs.py` once, then again. The second run is much
