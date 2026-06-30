@@ -99,7 +99,7 @@ def _anthropic_client():
 
 @lru_cache(maxsize=1)
 def _voyage_client():
-    import voyageai
+    import voyageai  # type: ignore[import-untyped]
 
     return voyageai.Client()  # pyright: ignore[reportPrivateImportUsage]
 
