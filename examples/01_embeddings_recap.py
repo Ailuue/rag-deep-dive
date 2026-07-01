@@ -25,9 +25,8 @@ import sys
 # Make the repo root importable so `import rag` works from any directory.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from dotenv import load_dotenv
-
 import rag
+from dotenv import load_dotenv
 
 load_dotenv()
 rag.ensure_ready()
@@ -36,8 +35,8 @@ print(f"Provider: {rag.describe()}\n")
 query = "How do I get my notes out of the app?"
 candidates = [
     "Any notebook can be exported to Markdown, PDF, or HTML.",  # relevant, no shared words
-    "Support operates Monday to Friday, 9 to 5.",              # unrelated
-    "Deleted notes stay in Trash for 30 days.",                # unrelated to the query
+    "Support operates Monday to Friday, 9 to 5.",  # unrelated
+    "Deleted notes stay in Trash for 30 days.",  # near-miss — edged out the export result by ~0.001
 ]
 
 # Embed the documents and the query. (We pass input_type so the Voyage stack can
@@ -56,6 +55,7 @@ for text, vec in ranked:
     print(f"  {rag.cosine_similarity(query_vector, vec):.3f}  {text}")
 
 print(
-    "\nNotice the top hit shares no words with the query — 'export' ≈ 'get my "
-    "notes out'. That semantic match is what makes retrieval possible."
+    "\nNotice the second result shares no words with the query yet nearly ties "
+    "for first — 'export' ≈ 'get my notes out'. That semantic match is what "
+    "makes retrieval possible."
 )
